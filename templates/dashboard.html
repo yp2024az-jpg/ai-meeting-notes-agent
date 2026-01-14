@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meeting Notes Agent - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .nav {
+            background: white;
+            border-bottom: 1px solid #e1e5e9;
+            padding: 0 2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .nav-tab:hover {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #5a67d8;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e0;
+        }
+
+        .workspace-card {
+            cursor: pointer;
+        }
+
+        .meeting-card {
+            cursor: pointer;
+        }
+
+        .meeting-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-scheduled { background-color: #bee3f8; color: #2b6cb0; }
+        .status-in_progress { background-color: #c6f6d5; color: #22543d; }
+        .status-completed { background-color: #e2e8f0; color: #4a5568; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .recent-activity {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .activity-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .activity-meeting { background-color: #bee3f8; color: #2b6cb0; }
+        .activity-task { background-color: #c6f6d5; color: #22543d; }
+        .activity-summary { background-color: #fef5e7; color: #d69e2e; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI Meeting Notes Agent</h1>
+    </div>
+
+    <nav class="nav">
+        <ul class="nav-tabs">
+            <li class="nav-tab active" data-tab="overview">Overview</li>
+            <li class="nav-tab" data-tab="workspaces">Workspaces</li>
+            <li class="nav-tab" data-tab="meetings">Meetings</li>
+            <li class="nav-tab" data-tab="tasks">Tasks</li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- Overview Tab -->
+        <div id="overview-tab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-meetings">0</div>
+                    <div class="stat-label">Total Meetings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-meetings">0</div>
+                    <div class="stat-label">Active Meetings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completed-tasks">0</div>
+                    <div class="stat-label">Completed Tasks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ai-insights">0</div>
+                    <div class="stat-label">AI Insights Generated</div>
+                </div>
+            </div>
+
+            <div class="recent-activity">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Activity</h3>
+                </div>
+                <div id="recent-activity-list">
+                    <!-- Activity items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Workspaces Tab -->
+        <div id="workspaces-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Your Workspaces</h3>
+                    <button class="btn btn-primary" onclick="showCreateWorkspaceModal()">+ New Workspace</button>
+                </div>
+                <div class="card-content">
+                    <div id="workspaces-list" class="grid">
+                        <!-- Workspaces will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meetings Tab -->
+        <div id="meetings-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Your Meetings</h3>
+                    <button class="btn btn-primary" onclick="showCreateMeetingModal()">+ New Meeting</button>
+                </div>
+                <div class="card-content">
+                    <div id="meetings-list" class="grid">
+                        <!-- Meetings will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Tab -->
+        <div id="tasks-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Your Tasks</h3>
+                    <button class="btn btn-primary" onclick="showCreateTaskModal()">+ New Task</button>
+                </div>
+                <div class="card-content">
+                    <div id="tasks-list">
+                        <!-- Tasks will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Workspace Modal -->
+    <div id="create-workspace-modal" class="modal">
+        <div class="modal-content">
+            <h3>Create New Workspace</h3>
+            <form id="create-workspace-form">
+                <div class="form-group">
+                    <label class="form-label" for="workspace-name">Workspace Name</label>
+                    <input type="text" id="workspace-name" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="workspace-description">Description</label>
+                    <textarea id="workspace-description" name="description" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('create-workspace-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Workspace</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Meeting Modal -->
+    <div id="create-meeting-modal" class="modal">
+        <div class="modal-content">
+            <h3>Create New Meeting</h3>
+            <form id="create-meeting-form">
+                <div class="form-group">
+                    <label class="form-label" for="meeting-title">Meeting Title</label>
+                    <input type="text" id="meeting-title" name="title" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="meeting-project">Project</label>
+                    <select id="meeting-project" name="project_id" class="form-input" required>
+                        <!-- Projects will be populated here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="meeting-type">Meeting Type</label>
+                    <select id="meeting-type" name="meeting_type" class="form-input">
+                        <option value="general">General</option>
+                        <option value="standup">Daily Standup</option>
+                        <option value="retrospective">Retrospective</option>
+                        <option value="planning">Planning</option>
+                        <option value="client_call">Client Call</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('create-meeting-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Meeting</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentToken = null;
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            currentToken = token;
+            initializeDashboard();
+        });
+
+        // Tab switching
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+
+                // Remove active class from all tabs
+                document.querySelectorAll('.nav-tab').forEach(t => {
+                    t.classList.remove('active');
+                });
+
+                // Show selected tab
+                document.getElementById(tabName + '-tab').style.display = 'block';
+                this.classList.add('active');
+
+                // Load tab data
+                loadTabData(tabName);
+            });
+        });
+
+        async function initializeDashboard() {
+            try {
+                // Get current user info
+                const userResponse = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                if (userResponse.ok) {
+                    currentUser = await userResponse.json();
+                    document.querySelector('.header h1').textContent += ` - Welcome ${currentUser.username}`;
+                }
+
+                // Load overview data
+                loadTabData('overview');
+            } catch (error) {
+                console.error('Failed to initialize dashboard:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        async function loadTabData(tabName) {
+            switch(tabName) {
+                case 'overview':
+                    await loadOverviewData();
+                    break;
+                case 'workspaces':
+                    await loadWorkspaces();
+                    break;
+                case 'meetings':
+                    await loadMeetings();
+                    break;
+                case 'tasks':
+                    await loadTasks();
+                    break;
+            }
+        }
+
+        async function loadOverviewData() {
+            try {
+                // Load stats
+                const [meetingsRes, tasksRes] = await Promise.all([
+                    fetch('/api/meetings', {
+                        headers: { 'Authorization': `Bearer ${currentToken}` }
+                    }),
+                    fetch('/api/tasks', {
+                        headers: { 'Authorization': `Bearer ${currentToken}` }
+                    })
+                ]);
+
+                if (meetingsRes.ok) {
+                    const meetings = await meetingsRes.json();
+                    document.getElementById('total-meetings').textContent = meetings.length;
+                    document.getElementById('active-meetings').textContent =
+                        meetings.filter(m => m.status === 'in_progress').length;
+                }
+
+                if (tasksRes.ok) {
+                    const tasks = await tasksRes.json();
+                    document.getElementById('completed-tasks').textContent =
+                        tasks.filter(t => t.status === 'done').length;
+                }
+
+                // Load recent activity (mock data for now)
+                loadRecentActivity();
+
+            } catch (error) {
+                console.error('Failed to load overview data:', error);
+            }
+        }
+
+        function loadRecentActivity() {
+            const activities = [
+                { type: 'meeting', title: 'Team Standup completed', time: '2 hours ago' },
+                { type: 'task', title: 'Action item assigned', time: '4 hours ago' },
+                { type: 'summary', title: 'AI summary generated', time: '1 day ago' }
+            ];
+
+            const activityList = document.getElementById('recent-activity-list');
+            activityList.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon activity-${activity.type}">
+                        ${getActivityIcon(activity.type)}
+                    </div>
+                    <div>
+                        <div style="font-weight: 500;">${activity.title}</div>
+                        <div style="color: #718096; font-size: 0.875rem;">${activity.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                meeting: '📅',
+                task: '✅',
+                summary: '🤖'
+            };
+            return icons[type] || '📝';
+        }
+
+        async function loadWorkspaces() {
+            try {
+                const response = await fetch('/api/workspaces', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (response.ok) {
+                    const workspaces = await response.json();
+                    const workspacesList = document.getElementById('workspaces-list');
+
+                    if (workspaces.length === 0) {
+                        workspacesList.innerHTML = '<p>No workspaces yet. Create your first workspace!</p>';
+                        return;
+                    }
+
+                    workspacesList.innerHTML = workspaces.map(workspace => `
+                        <div class="card workspace-card" onclick="openWorkspace(${workspace.id})">
+                            <div class="card-header">
+                                <h4 class="card-title">${workspace.name}</h4>
+                            </div>
+                            <div class="card-content">
+                                <p>${workspace.description || 'No description'}</p>
+                                <p style="color: #718096; font-size: 0.875rem; margin-top: 0.5rem;">
+                                    Created ${new Date(workspace.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load workspaces:', error);
+            }
+        }
+
+        async function loadMeetings() {
+            try {
+                // First get user's workspaces and their projects
+                const workspacesRes = await fetch('/api/workspaces', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!workspacesRes.ok) return;
+
+                const workspaces = await workspacesRes.json();
+                let allMeetings = [];
+
+                // Get meetings from all projects in all workspaces
+                for (const workspace of workspaces) {
+                    try {
+                        const projectsRes = await fetch(`/api/workspaces/${workspace.id}/projects`, {
+                            headers: { 'Authorization': `Bearer ${currentToken}` }
+                        });
+
+                        if (projectsRes.ok) {
+                            const projects = await projectsRes.json();
+                            for (const project of projects) {
+                                const meetingsRes = await fetch(`/api/projects/${project.id}/meetings`, {
+                                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                                });
+
+                                if (meetingsRes.ok) {
+                                    const meetings = await meetingsRes.json();
+                                    allMeetings = allMeetings.concat(meetings.map(m => ({ ...m, project_name: project.name })));
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Failed to load meetings for workspace ${workspace.id}:`, error);
+                    }
+                }
+
+                const meetingsList = document.getElementById('meetings-list');
+
+                if (allMeetings.length === 0) {
+                    meetingsList.innerHTML = '<p>No meetings yet. Create your first meeting!</p>';
+                    return;
+                }
+
+                meetingsList.innerHTML = allMeetings.map(meeting => `
+                    <div class="card meeting-card" onclick="openMeeting(${meeting.id})">
+                        <div class="card-header">
+                            <h4 class="card-title">${meeting.title}</h4>
+                            <span class="meeting-status status-${meeting.status}">${meeting.status}</span>
+                        </div>
+                        <div class="card-content">
+                            <p><strong>Project:</strong> ${meeting.project_name}</p>
+                            <p><strong>Type:</strong> ${meeting.meeting_type}</p>
+                            <p style="color: #718096; font-size: 0.875rem; margin-top: 0.5rem;">
+                                ${meeting.start_time ? new Date(meeting.start_time).toLocaleString() : 'Not scheduled'}
+                            </p>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Failed to load meetings:', error);
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                // Get tasks from all projects
+                const workspacesRes = await fetch('/api/workspaces', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!workspacesRes.ok) return;
+
+                const workspaces = await workspacesRes.json();
+                let allTasks = [];
+
+                for (const workspace of workspaces) {
+                    try {
+                        const projectsRes = await fetch(`/api/workspaces/${workspace.id}/projects`, {
+                            headers: { 'Authorization': `Bearer ${currentToken}` }
+                        });
+
+                        if (projectsRes.ok) {
+                            const projects = await projectsRes.json();
+                            for (const project of projects) {
+                                const tasksRes = await fetch(`/api/projects/${project.id}/tasks`, {
+                                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                                });
+
+                                if (tasksRes.ok) {
+                                    const tasks = await tasksRes.json();
+                                    allTasks = allTasks.concat(tasks.map(t => ({ ...t, project_name: project.name })));
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Failed to load tasks for workspace ${workspace.id}:`, error);
+                    }
+                }
+
+                const tasksList = document.getElementById('tasks-list');
+
+                if (allTasks.length === 0) {
+                    tasksList.innerHTML = '<p>No tasks yet. Create your first task!</p>';
+                    return;
+                }
+
+                tasksList.innerHTML = allTasks.map(task => `
+                    <div class="card" style="margin-bottom: 1rem;">
+                        <div class="card-content">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin: 0; margin-bottom: 0.5rem;">${task.title}</h4>
+                                    <p style="margin: 0; color: #718096;">${task.description || 'No description'}</p>
+                                    <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #4a5568;">
+                                        Project: ${task.project_name} | Priority: ${task.priority} | Status: ${task.status}
+                                    </p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-secondary" onclick="updateTaskStatus(${task.id}, '${task.status === 'done' ? 'todo' : 'done'}')">
+                                        ${task.status === 'done' ? 'Reopen' : 'Complete'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+            }
+        }
+
+        // Modal functions
+        function showCreateWorkspaceModal() {
+            document.getElementById('create-workspace-modal').style.display = 'block';
+        }
+
+        function showCreateMeetingModal() {
+            loadProjectsForMeeting();
+            document.getElementById('create-meeting-modal').style.display = 'block';
+        }
+
+        function showCreateTaskModal() {
+            // TODO: Implement task creation modal
+            alert('Task creation coming soon!');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Form submissions
+        document.getElementById('create-workspace-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const workspaceData = {
+                name: formData.get('name'),
+                description: formData.get('description')
+            };
+
+            try {
+                const response = await fetch('/api/workspaces', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(workspaceData)
+                });
+
+                if (response.ok) {
+                    hideModal('create-workspace-modal');
+                    this.reset();
+                    loadWorkspaces();
+                } else {
+                    alert('Failed to create workspace');
+                }
+            } catch (error) {
+                console.error('Failed to create workspace:', error);
+                alert('Failed to create workspace');
+            }
+        });
+
+        document.getElementById('create-meeting-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const meetingData = {
+                title: formData.get('title'),
+                project_id: parseInt(formData.get('project_id')),
+                meeting_type: formData.get('meeting_type') || 'general'
+            };
+
+            try {
+                const response = await fetch('/api/meetings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify(meetingData)
+                });
+
+                if (response.ok) {
+                    const meeting = await response.json();
+                    hideModal('create-meeting-modal');
+                    this.reset();
+                    loadMeetings();
+                    // Optionally open the meeting
+                    openMeeting(meeting.id);
+                } else {
+                    alert('Failed to create meeting');
+                }
+            } catch (error) {
+                console.error('Failed to create meeting:', error);
+                alert('Failed to create meeting');
+            }
+        });
+
+        async function loadProjectsForMeeting() {
+            try {
+                const workspacesRes = await fetch('/api/workspaces', {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!workspacesRes.ok) return;
+
+                const workspaces = await workspacesRes.json();
+                const projectSelect = document.getElementById('meeting-project');
+                projectSelect.innerHTML = '<option value="">Select a project...</option>';
+
+                for (const workspace of workspaces) {
+                    const projectsRes = await fetch(`/api/workspaces/${workspace.id}/projects`, {
+                        headers: { 'Authorization': `Bearer ${currentToken}` }
+                    });
+
+                    if (projectsRes.ok) {
+                        const projects = await projectsRes.json();
+                        if (projects.length > 0) {
+                            const optgroup = document.createElement('optgroup');
+                            optgroup.label = workspace.name;
+                            projects.forEach(project => {
+                                const option = document.createElement('option');
+                                option.value = project.id;
+                                option.textContent = project.name;
+                                optgroup.appendChild(option);
+                            });
+                            projectSelect.appendChild(optgroup);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load projects for meeting:', error);
+            }
+        }
+
+        // Navigation functions
+        function openWorkspace(workspaceId) {
+            // TODO: Navigate to workspace view
+            alert(`Opening workspace ${workspaceId} - coming soon!`);
+        }
+
+        function openMeeting(meetingId) {
+            window.location.href = `/meeting/${meetingId}`;
+        }
+
+        async function updateTaskStatus(taskId, newStatus) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    loadTasks();
+                } else {
+                    alert('Failed to update task');
+                }
+            } catch (error) {
+                console.error('Failed to update task:', error);
+                alert('Failed to update task');
+            }
+        }
+    </script>
+</body>
+</html>

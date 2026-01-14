@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meeting Notes Agent - Meeting</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .meeting-info h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .meeting-meta {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        .controls {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .meeting-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input, button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        button.recording {
+            background: #e74c3c;
+        }
+        button.recording:hover {
+            background: #c0392b;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            height: 700px;
+        }
+        .main-panel {
+            padding: 20px;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+        }
+        .transcript-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .transcript-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .transcript-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .transcript-panel {
+            flex: 1;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .sidebar {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .sidebar-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .sidebar-title {
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+        .sidebar-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .transcript-item, .note-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .note-item.summary {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .note-item.action-item {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .speaker {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .interim {
+            font-style: italic;
+            color: #6c757d;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border-left: 3px dashed #6c757d;
+            background: #fff;
+            border-radius: 4px;
+        }
+        .status {
+            padding: 10px;
+            background: #e9ecef;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .status.recording {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.info {
+            background: #e9f7ef;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .action-item {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .action-item.completed {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .action-assignee {
+            font-weight: bold;
+            color: #495057;
+        }
+        .action-due-date {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        .participants-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .participant {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #495057;
+        }
+        .ai-insights {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .insight-title {
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 5px;
+        }
+        .insight-content {
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .back-button {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        .back-button:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="meeting-info">
+                <h1 id="meeting-title">Loading Meeting...</h1>
+                <div class="meeting-meta" id="meeting-meta"></div>
+            </div>
+            <a href="/dashboard" class="back-button">← Back to Dashboard</a>
+        </div>
+
+        <div class="controls">
+            <div class="meeting-actions">
+                <button id="startMeeting">Start Meeting</button>
+                <button id="toggleRecording">🎤 Start Recording</button>
+                <button id="generateSummary" class="secondary">🤖 Generate Summary</button>
+                <button id="extractActionItems" class="secondary">📋 Extract Action Items</button>
+            </div>
+            <div class="transcript-controls">
+                <button id="exportTranscript">📥 Export Transcript</button>
+                <button id="exportNotes">💾 Export Notes</button>
+            </div>
+        </div>
+
+        <div id="status" class="status">Ready to start meeting</div>
+
+        <div class="content">
+            <div class="main-panel">
+                <div class="transcript-section">
+                    <div class="transcript-header">
+                        <h3>📝 Live Transcript</h3>
+                        <div class="transcript-controls">
+                            <button id="clearTranscript" class="secondary">Clear</button>
+                        </div>
+                    </div>
+                    <div id="interim" class="interim" aria-live="polite" hidden></div>
+                    <div id="transcript" class="transcript-panel"></div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        <h4 class="sidebar-title">👥 Participants</h4>
+                        <span id="participant-count">0</span>
+                    </div>
+                    <div class="sidebar-content">
+                        <div id="participants" class="participants-list">
+                            <!-- Participants will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        <h4 class="sidebar-title">📋 Meeting Notes</h4>
+                        <button id="addNote" class="secondary">+ Add Note</button>
+                    </div>
+                    <div class="sidebar-content">
+                        <div id="notes"></div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        <h4 class="sidebar-title">✅ Action Items</h4>
+                        <button id="refreshActionItems" class="secondary">🔄</button>
+                    </div>
+                    <div class="sidebar-content">
+                        <div id="action-items"></div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        <h4 class="sidebar-title">🤖 AI Insights</h4>
+                    </div>
+                    <div class="sidebar-content">
+                        <div id="ai-insights"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let websocket = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let currentMeeting = null;
+        let currentUser = null;
+        let currentToken = null;
+
+        // DOM elements
+        const meetingTitle = document.getElementById('meeting-title');
+        const meetingMeta = document.getElementById('meeting-meta');
+        const startMeetingBtn = document.getElementById('startMeeting');
+        const toggleRecordingBtn = document.getElementById('toggleRecording');
+        const generateSummaryBtn = document.getElementById('generateSummary');
+        const extractActionItemsBtn = document.getElementById('extractActionItems');
+        const exportTranscriptBtn = document.getElementById('exportTranscript');
+        const exportNotesBtn = document.getElementById('exportNotes');
+        const clearTranscriptBtn = document.getElementById('clearTranscript');
+        const addNoteBtn = document.getElementById('addNote');
+        const refreshActionItemsBtn = document.getElementById('refreshActionItems');
+        const statusDiv = document.getElementById('status');
+        const transcriptDiv = document.getElementById('transcript');
+        const notesDiv = document.getElementById('notes');
+        const actionItemsDiv = document.getElementById('action-items');
+        const aiInsightsDiv = document.getElementById('ai-insights');
+        const participantsDiv = document.getElementById('participants');
+        const participantCount = document.getElementById('participant-count');
+
+        // Get meeting ID from URL
+        const meetingId = window.location.pathname.split('/').pop();
+
+        // Initialize speech recognition (Web Speech API)
+        let recognition = null;
+        if (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                let interim = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        finalTranscript += result[0].transcript;
+                    } else {
+                        interim += result[0].transcript;
+                    }
+                }
+
+                // Show interim results in the transcript panel
+                if (interim) {
+                    showInterim(interim);
+                } else {
+                    clearInterim();
+                }
+
+                if (finalTranscript) {
+                    clearInterim();
+                    const timestamp = new Date().toLocaleTimeString();
+                    addTranscript(timestamp, currentUser?.username || 'You', finalTranscript);
+                    sendTranscriptToServer(finalTranscript);
+                }
+            };
+
+            recognition.onerror = function(evt) {
+                console.error('Speech recognition error:', evt);
+                updateStatus('Speech recognition error', 'error');
+            };
+
+            recognition.onend = function() {
+                // If recording is still flagged, restart recognition (helps some browsers)
+                if (isRecording) {
+                    try { recognition.start(); } catch (e) { console.warn('Could not restart recognition', e); }
+                }
+            };
+        } else {
+            console.warn('Web Speech API not supported in this browser');
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async function() {
+            // Check authentication
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            currentToken = token;
+
+            try {
+                // Get current user
+                const userResponse = await fetch('/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (userResponse.ok) {
+                    currentUser = await userResponse.json();
+                }
+
+                // Load meeting data
+                await loadMeetingData();
+
+                // Initialize WebSocket connection
+                initWebSocket();
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                window.location.href = '/dashboard';
+            }
+        });
+
+        // Load meeting data
+        async function loadMeetingData() {
+            try {
+                const response = await fetch(`/api/meetings/${meetingId}`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (response.ok) {
+                    currentMeeting = await response.json();
+                    updateMeetingDisplay();
+                    loadMeetingNotes();
+                    loadActionItems();
+                } else {
+                    alert('Failed to load meeting data');
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.error('Failed to load meeting data:', error);
+                window.location.href = '/dashboard';
+            }
+        }
+
+        function updateMeetingDisplay() {
+            if (!currentMeeting) return;
+
+            meetingTitle.textContent = currentMeeting.title;
+            meetingMeta.textContent = `Type: ${currentMeeting.meeting_type} | Status: ${currentMeeting.status}`;
+
+            // Update participants
+            if (currentMeeting.participants && currentMeeting.participants.length > 0) {
+                participantsDiv.innerHTML = currentMeeting.participants.map(userId =>
+                    `<span class="participant">User ${userId}</span>`
+                ).join('');
+                participantCount.textContent = currentMeeting.participants.length;
+            } else {
+                participantsDiv.innerHTML = '<span class="participant">You</span>';
+                participantCount.textContent = '1';
+            }
+        }
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            websocket = new WebSocket(`ws://localhost:8000/ws/meeting/${meetingId}?token=${currentToken}`);
+
+            websocket.onopen = function(event) {
+                console.log('WebSocket connected');
+                updateStatus('Connected to meeting', 'info');
+            };
+
+            websocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            websocket.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                updateStatus('Disconnected from meeting', 'error');
+            };
+
+            websocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateStatus('Connection error', 'error');
+            };
+        }
+
+        // Handle incoming WebSocket messages
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'transcript':
+                    addTranscript(data.timestamp || new Date().toLocaleTimeString(),
+                                data.speaker || 'Speaker', data.text);
+                    break;
+                case 'summary':
+                    addSummary(data.text);
+                    break;
+                case 'action_items':
+                    displayActionItems(data.action_items);
+                    break;
+                case 'meeting_started':
+                    updateStatus('Meeting in progress', 'info');
+                    break;
+                case 'meeting_ended':
+                    updateStatus('Meeting ended', 'info');
+                    if (data.insights) {
+                        displayAIInsights(data.insights);
+                    }
+                    break;
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        // Show interim transcript text in UI
+        const interimDiv = document.getElementById('interim');
+        function showInterim(text) {
+            if (!interimDiv) return;
+            interimDiv.hidden = false;
+            interimDiv.textContent = text;
+        }
+
+        function clearInterim() {
+            if (!interimDiv) return;
+            interimDiv.hidden = true;
+            interimDiv.textContent = '';
+        }
+
+        // Improved status updater with levels
+        function updateStatus(message, level = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.classList.remove('recording', 'info', 'error');
+            statusDiv.classList.add(level);
+            if (isRecording) {
+                statusDiv.classList.add('recording');
+            }
+        }
+
+        // Send transcript to server
+        function sendTranscriptToServer(transcript) {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'transcript',
+                    text: transcript,
+                    timestamp: new Date().toISOString(),
+                    speaker: currentUser?.username || 'Anonymous'
+                }));
+            }
+        }
+
+        // Add transcript to display
+        function addTranscript(timestamp, speaker, text) {
+            const item = document.createElement('div');
+            item.className = 'transcript-item';
+            item.innerHTML = `
+                <div class="timestamp">${timestamp}</div>
+                <div class="speaker">${speaker}:</div>
+                <div>${text}</div>
+            `;
+            transcriptDiv.appendChild(item);
+            transcriptDiv.scrollTop = transcriptDiv.scrollHeight;
+        }
+
+        // Add note to display
+        function addNote(timestamp, speaker, text, type = 'transcript') {
+            const item = document.createElement('div');
+            item.className = `note-item ${type}`;
+            item.innerHTML = `
+                <div class="timestamp">${timestamp}</div>
+                <div class="speaker">${speaker}:</div>
+                <div>${text}</div>
+            `;
+            notesDiv.appendChild(item);
+            notesDiv.scrollTop = notesDiv.scrollHeight;
+        }
+
+        // Add summary note
+        function addSummary(text) {
+            const timestamp = new Date().toLocaleTimeString();
+            addNote(timestamp, '🤖 AI Summary', text, 'summary');
+        }
+
+        // Load existing meeting notes
+        async function loadMeetingNotes() {
+            try {
+                const response = await fetch(`/api/meetings/${meetingId}/notes`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (response.ok) {
+                    const notes = await response.json();
+                    notes.forEach(note => {
+                        addNote(
+                            new Date(note.timestamp).toLocaleTimeString(),
+                            note.speaker || 'Unknown',
+                            note.content,
+                            note.note_type
+                        );
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load meeting notes:', error);
+            }
+        }
+
+        // Load action items
+        async function loadActionItems() {
+            // Action items will be loaded from AI or existing data
+            // For now, this is a placeholder
+        }
+
+        // Display action items
+        function displayActionItems(actionItems) {
+            actionItemsDiv.innerHTML = '';
+            actionItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'action-item';
+                itemDiv.innerHTML = `
+                    <div style="margin-bottom: 5px;">
+                        <strong>${item.title}</strong>
+                    </div>
+                    <div style="font-size: 0.875rem; color: #666; margin-bottom: 5px;">
+                        ${item.description}
+                    </div>
+                    ${item.assignee ? `<div class="action-assignee">👤 ${item.assignee}</div>` : ''}
+                    ${item.due_date ? `<div class="action-due-date">📅 ${item.due_date}</div>` : ''}
+                `;
+                actionItemsDiv.appendChild(itemDiv);
+            });
+        }
+
+        // Display AI insights
+        function displayAIInsights(insights) {
+            aiInsightsDiv.innerHTML = '';
+
+            if (insights.key_decisions && insights.key_decisions.length > 0) {
+                const decisionsDiv = document.createElement('div');
+                decisionsDiv.className = 'ai-insights';
+                decisionsDiv.innerHTML = `
+                    <div class="insight-title">🎯 Key Decisions</div>
+                    <div class="insight-content">
+                        <ul>${insights.key_decisions.map(d => `<li>${d}</li>`).join('')}</ul>
+                    </div>
+                `;
+                aiInsightsDiv.appendChild(decisionsDiv);
+            }
+
+            if (insights.recommendations && insights.recommendations.length > 0) {
+                const recsDiv = document.createElement('div');
+                recsDiv.className = 'ai-insights';
+                recsDiv.innerHTML = `
+                    <div class="insight-title">💡 Recommendations</div>
+                    <div class="insight-content">
+                        <ul>${insights.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+                    </div>
+                `;
+                aiInsightsDiv.appendChild(recsDiv);
+            }
+        }
+
+        // Event listeners
+        startMeetingBtn.addEventListener('click', function() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'start_meeting',
+                    data: currentMeeting
+                }));
+                updateStatus('Meeting started', 'info');
+            }
+        });
+
+        toggleRecordingBtn.addEventListener('click', async function() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        generateSummaryBtn.addEventListener('click', function() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'generate_summary'
+                }));
+                updateStatus('Generating summary...', 'info');
+            }
+        });
+
+        extractActionItemsBtn.addEventListener('click', function() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'extract_action_items'
+                }));
+                updateStatus('Extracting action items...', 'info');
+            }
+        });
+
+        clearTranscriptBtn.addEventListener('click', function() {
+            transcriptDiv.innerHTML = '';
+            updateStatus('Transcript cleared', 'info');
+        });
+
+        addNoteBtn.addEventListener('click', function() {
+            const note = prompt('Enter your note:');
+            if (note && note.trim()) {
+                // Add note locally and send to server
+                const timestamp = new Date().toLocaleTimeString();
+                addNote(timestamp, currentUser?.username || 'You', note.trim());
+
+                // TODO: Send note to server
+            }
+        });
+
+        refreshActionItemsBtn.addEventListener('click', function() {
+            extractActionItemsBtn.click();
+        });
+
+        exportTranscriptBtn.addEventListener('click', function() {
+            const transcript = Array.from(document.querySelectorAll('.transcript-item')).map(item => {
+                const timestamp = item.querySelector('.timestamp').textContent;
+                const speaker = item.querySelector('.speaker').textContent;
+                const text = item.querySelector('div:last-child').textContent;
+                return `${timestamp} ${speaker} ${text}`;
+            }).join('\n\n');
+
+            const blob = new Blob([transcript], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `meeting_transcript_${currentMeeting?.title || 'meeting'}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        exportNotesBtn.addEventListener('click', function() {
+            const notes = Array.from(document.querySelectorAll('.note-item')).map(item => {
+                const timestamp = item.querySelector('.timestamp').textContent;
+                const speaker = item.querySelector('.speaker').textContent;
+                const text = item.querySelector('div:last-child').textContent;
+                return `${timestamp} ${speaker} ${text}`;
+            }).join('\n\n');
+
+            const blob = new Blob([notes], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `meeting_notes_${currentMeeting?.title || 'meeting'}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Speech recognition functions
+        async function startRecording() {
+            try {
+                if (!recognition) {
+                    updateStatus('Speech recognition not available', 'error');
+                    return;
+                }
+
+                recognition.start();
+                isRecording = true;
+                toggleRecordingBtn.textContent = '⏹️ Stop Recording';
+                toggleRecordingBtn.classList.add('recording');
+                updateStatus('Listening...', 'info');
+
+            } catch (error) {
+                console.error('Error starting speech recognition:', error);
+                updateStatus('Error: Could not start speech recognition', 'error');
+                isRecording = false;
+                toggleRecordingBtn.textContent = '🎤 Start Recording';
+                toggleRecordingBtn.classList.remove('recording');
+            }
+        }
+
+        function stopRecording() {
+            if (recognition && isRecording) {
+                recognition.stop();
+                isRecording = false;
+                toggleRecordingBtn.textContent = '🎤 Start Recording';
+                toggleRecordingBtn.classList.remove('recording');
+                updateStatus('Speech recognition stopped');
+            }
+        }
+
+        // Handle page unload
+        window.addEventListener('beforeunload', function() {
+            if (websocket) {
+                websocket.close();
+            }
+            stopRecording();
+        });
+    </script>
+</body>
+</html>
