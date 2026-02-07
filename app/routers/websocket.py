@@ -1,8 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.websocket_manager import meeting_manager
-from app import crud, models, auth
+from ..database import get_db
+from ..websocket_manager import meeting_manager
+from .. import crud, models, auth
 import json
 import logging
 

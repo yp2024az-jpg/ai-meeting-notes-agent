@@ -37,14 +37,16 @@ def init_db():
             print("Created demo user")
 
         # Create demo workspace
-        demo_workspace = crud.get_workspaces_by_owner(db, demo_user.id)
-        if not demo_workspace:
+        demo_workspaces = crud.get_workspaces_by_owner(db, demo_user.id)
+        if not demo_workspaces:
             workspace_data = {
                 "name": "Demo Workspace",
                 "description": "A demo workspace for testing the AI Meeting Notes Agent"
             }
             demo_workspace = crud.create_workspace(db, schemas.WorkspaceCreate(**workspace_data), demo_user.id)
             print("Created demo workspace")
+        else:
+            demo_workspace = demo_workspaces[0]  # Use the first workspace if it exists
 
         # Create demo project
         demo_projects = crud.get_projects_by_workspace(db, demo_workspace.id)
@@ -94,7 +96,7 @@ def init_db():
         print("Database initialization completed successfully!")
         print("\nDemo Credentials:")
         print("Username: demo")
-        print("Password: demo123")
+        print("Password: 123")
         print("\nYou can now start the application with: python main.py")
 
     except Exception as e:

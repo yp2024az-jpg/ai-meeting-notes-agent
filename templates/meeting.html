@@ -406,7 +406,38 @@
 
             recognition.onerror = function(evt) {
                 console.error('Speech recognition error:', evt);
-                updateStatus('Speech recognition error', 'error');
+                let errorMessage = 'Speech recognition error';
+
+                switch(evt.error) {
+                    case 'no-speech':
+                        errorMessage = 'No speech detected. Please speak clearly.';
+                        break;
+                    case 'audio-capture':
+                        errorMessage = 'Audio capture failed. Check your microphone.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = 'Microphone access denied. Please allow microphone access.';
+                        break;
+                    case 'network':
+                        errorMessage = 'Network error during speech recognition.';
+                        break;
+                    case 'service-not-allowed':
+                        errorMessage = 'Speech recognition service not allowed.';
+                        break;
+                    case 'bad-grammar':
+                        errorMessage = 'Speech recognition grammar error.';
+                        break;
+                    case 'language-not-supported':
+                        errorMessage = 'Language not supported for speech recognition.';
+                        break;
+                    default:
+                        errorMessage = `Speech recognition error: ${evt.error}`;
+                }
+
+                updateStatus(errorMessage, 'error');
+                isRecording = false;
+                toggleRecordingBtn.textContent = '🎤 Start Recording';
+                toggleRecordingBtn.classList.remove('recording');
             };
 
             recognition.onend = function() {
@@ -417,6 +448,10 @@
             };
         } else {
             console.warn('Web Speech API not supported in this browser');
+            // Disable the recording button if not supported
+            toggleRecordingBtn.disabled = true;
+            toggleRecordingBtn.textContent = '🎤 Not Supported';
+            toggleRecordingBtn.style.opacity = '0.5';
         }
 
         // Initialize on page load
@@ -524,18 +559,20 @@
                                 data.speaker || 'Speaker', data.text);
                     break;
                 case 'summary':
-                    addSummary(data.text);
+                case 'summary_generated':
+                    addSummary(data.data ? data.data.summary : data.summary);
                     break;
                 case 'action_items':
-                    displayActionItems(data.action_items);
+                case 'action_items_extracted':
+                    displayActionItems(data.data ? data.data.action_items : data.action_items);
                     break;
                 case 'meeting_started':
                     updateStatus('Meeting in progress', 'info');
                     break;
                 case 'meeting_ended':
                     updateStatus('Meeting ended', 'info');
-                    if (data.insights) {
-                        displayAIInsights(data.insights);
+                    if (data.data && data.data.insights) {
+                        displayAIInsights(data.data.insights);
                     }
                     break;
                 default:
@@ -788,7 +825,26 @@
         async function startRecording() {
             try {
                 if (!recognition) {
-                    updateStatus('Speech recognition not available', 'error');
+                    updateStatus('Speech recognition not supported in this browser', 'error');
+                    alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+                    return;
+                }
+
+                // Check if we're in a secure context
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                    updateStatus('Speech recognition requires HTTPS', 'error');
+                    alert('Speech recognition requires a secure connection (HTTPS). Please access the site over HTTPS.');
+                    return;
+                }
+
+                // Request microphone permission first
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+                } catch (permError) {
+                    console.error('Microphone permission denied:', permError);
+                    updateStatus('Microphone access required for speech recognition', 'error');
+                    alert('Please allow microphone access to use speech recognition.');
                     return;
                 }
 

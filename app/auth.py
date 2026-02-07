@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app import models
+from .database import get_db
+from . import models
 import os
 
 # Security settings
@@ -14,7 +14,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -72,12 +72,15 @@ def get_current_active_user(current_user: models.User = Depends(get_current_user
     return current_user
 
 def get_current_active_user_optional(
-    token: Optional[str] = Depends(oauth2_scheme),
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Optional[models.User]:
     """Get current active user if authenticated, None otherwise"""
-    if not token:
+    authorization = request.headers.get("authorization")
+    if not authorization or not authorization.startswith("Bearer "):
         return None
+
+    token = authorization.split(" ")[1]
     try:
         return get_current_active_user(get_current_user(token, db))
     except HTTPException:

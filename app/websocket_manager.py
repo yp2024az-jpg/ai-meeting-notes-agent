@@ -2,8 +2,8 @@ from typing import Dict, List, Set
 import json
 import logging
 from fastapi import WebSocket
-from app import models, schemas
-from app.ai_service import ai_service
+from . import models, schemas
+from .ai_service import ai_service
 
 logger = logging.getLogger(__name__)
 

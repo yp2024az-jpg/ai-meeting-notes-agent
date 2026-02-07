@@ -11,24 +11,29 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import Optional
+from contextlib import asynccontextmanager
 
 # Import our modules
-from app.database import engine, get_db
-from app import models, auth
-from app.routers import auth as auth_router, api, websocket
-
-# Create database tables
-models.Base.metadata.create_all(bind=engine)
+from .database import engine, get_db
+from . import models, auth
+from .routers import auth as auth_router, api, websocket
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create database tables
+    models.Base.metadata.create_all(bind=engine)
+    yield
+
 # Initialize FastAPI app
 app = FastAPI(
     title="AI Meeting Notes Agent - ClickUp Style",
     version="2.0.0",
-    description="AI-powered meeting management platform with real-time collaboration"
+    description="AI-powered meeting management platform with real-time collaboration",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -64,20 +69,12 @@ async def home(
         return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/dashboard")
-async def dashboard(
-    request: Request,
-    current_user: models.User = Depends(auth.get_current_active_user),
-    db: Session = Depends(get_db)
-):
+async def dashboard(request: Request):
     """Serve the dashboard interface"""
     return templates.TemplateResponse("dashboard.html", {"request": request})
 
 @app.get("/meeting/{meeting_id}")
-async def meeting_page(
-    request: Request,
-    meeting_id: int,
-    current_user: models.User = Depends(auth.get_current_active_user)
-):
+async def meeting_page(request: Request, meeting_id: int):
     """Serve the meeting interface"""
     return templates.TemplateResponse("meeting.html", {
         "request": request,

@@ -259,7 +259,7 @@
         <div style="text-align: center; color: #718096; font-size: 0.75rem; line-height: 1.4;">
             <strong>Demo Login:</strong><br>
             Username: demo<br>
-            Password: demo123
+            Password: 123
         </div>
     </div>
 
@@ -332,10 +332,9 @@
             hideMessages();
 
             const formData = new FormData(this);
-            const loginData = {
-                username: formData.get('username'),
-                password: formData.get('password')
-            };
+            const loginData = new URLSearchParams();
+            loginData.append('username', formData.get('username'));
+            loginData.append('password', formData.get('password'));
 
             const loginBtn = document.getElementById('login-btn');
             setLoading(loginBtn, true);
@@ -344,9 +343,9 @@
                 const response = await fetch('/auth/login', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: JSON.stringify(loginData)
+                    body: loginData.toString()
                 });
 
                 const data = await response.json();
